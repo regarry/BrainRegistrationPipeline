@@ -76,7 +76,7 @@ if __name__ == '__main__':
     args = get_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.cuda)
     torch.set_num_threads(args.cpu)
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
     #in_files = args.input
     #out_files = get_output_filenames(args)

@@ -12,8 +12,6 @@ from pathlib import Path
 from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
-from sklearn.preprocessing import RobustScaler
-from sklearn.preprocessing import StandardScaler
 
 
 def load_image(filename):
@@ -71,10 +69,9 @@ class BasicDataset(Dataset):
         assert newW > 0 and newH > 0, 'Scale is too small, resized images would have no pixel'
         pil_img = pil_img.resize((newW, newH), resample=Image.NEAREST if is_mask else Image.BICUBIC)
         img = np.asarray(pil_img)
-        
+
         if is_mask:
             mask = np.zeros((newH, newW), dtype=np.int64)
-            # ordial integer encoding of mask
             for i, v in enumerate(mask_values):
                 if img.ndim == 2:
                     mask[img == v] = i
@@ -84,20 +81,16 @@ class BasicDataset(Dataset):
             return mask
 
         else:
-            scaler = StandardScaler()
-            img = scaler.fit_transform(img)
-            
             if img.ndim == 2:
                 img = img[np.newaxis, ...]
             else:
                 img = img.transpose((2, 0, 1))
-                
-            # think this is messing up scaling
-            #if (img > 1).any():
-            #    img = img / 255.0
 
-            
+            if (img > 1).any():
+                img = img / 255.0
+
             return img
+
 
 
     @staticmethod
@@ -134,6 +127,9 @@ class BasicDataset(Dataset):
         mask = self.preprocess(self.mask_values, mask, self.scale, is_mask=True)
         img = torch.as_tensor(img.copy()).float().contiguous()
         mask = torch.as_tensor(mask.copy()).long().contiguous()
+        mean, std = img.mean([1,2]), img.std([1,2])
+        transform_norm = transforms.Normalize(mean, std)
+        img = transform_norm(img)
         #mean, std = img_tr.mean([1,2]), img_tr.std([1,2])
         if self.is_train:
             #only augment images if training dataset

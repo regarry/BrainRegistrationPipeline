@@ -22,9 +22,9 @@ def predict_img(net,
                 out_threshold=0.5):
     net.eval()
     img = torch.from_numpy(BasicDataset.preprocess(None, full_img, scale_factor, is_mask=False))
-    #mean, std = img.mean([1,2]), img.std([1,2])
-    #transform_norm = transforms.Normalize(mean, std)
-    #img = transform_norm(img)
+    mean, std = img.mean([1,2]), img.std([1,2])
+    transform_norm = transforms.Normalize(mean, std)
+    img = transform_norm(img)
     img = img.unsqueeze(0)
     img = img.to(device=device, dtype=torch.float32)
 
