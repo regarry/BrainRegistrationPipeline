@@ -1,7 +1,7 @@
 import argparse
 import logging
 import os
-
+import glob
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -57,13 +57,22 @@ def get_args():
     
     return parser.parse_args()
 
-
+"""
 def get_output_filenames(args):
     def _generate_name(fn):
         return f'{os.path.splitext(fn)[0]}_OUT.png'
 
     return args.output or list(map(_generate_name, args.input))
+"""
 
+def get_output_filenames(input_dir, output_dir):
+    # Get all input file names
+    input_files = glob.glob(os.path.join(input_dir, '*.png'))
+
+    # Generate output file paths
+    output_files = [os.path.join(output_dir, os.path.splitext(os.path.basename(f))[0] + '_mask.png') for f in input_files]
+
+    return output_files
 
 def mask_to_image(mask: np.ndarray, mask_values):
     if isinstance(mask_values[0], list):
@@ -81,13 +90,17 @@ def mask_to_image(mask: np.ndarray, mask_values):
 
     return Image.fromarray(out)
 
+def get_png_files(directory):
+    # Use glob to match .png file paths
+    file_paths = glob.glob(os.path.join(directory, '*.png'))
+    return file_paths
 
 if __name__ == '__main__':
     args = get_args()
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
-    in_files = args.input
-    out_files = get_output_filenames(args)
+    in_files = get_png_files(args.input[0])
+    out_files = get_output_filenames(args.input[0], args.output[0])
 
     net = UNet(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
 
