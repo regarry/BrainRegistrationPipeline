@@ -1,0 +1,13 @@
+python train.py -s 1 -e 1 -c 2 --amp
+python train.py -s 1 -e 1 -v 0 -c 2 --amp
+python train.py -s 1 -e 1 -c 2 -b 2 --amp
+python predict.py -m /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/checkpoints/checkpoint_epoch3.pth --input /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data/imgs/cfos_001.png --output ./out_001.png
+python predict.py -m ./checkpoints/checkpoint_epoch1.pth --input /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data/cfos_img_remaining/cfos_049.png --output ./out/out_1b_049.png
+python predict.py -m ./checkpoints/checkpoint_epoch1.pth --input /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data/cfos_img_remaining/cfos_059.png --output ./out/out_1b_059.png
+bsub -Is -n 8 -q new_gpu -gpu "num=2:mode=shared:mps=yes" -W 2:00 bash
+conda activate $torchv3
+cd $scr/Pytorch-UNet
+python train.py -s 1 -e 10 --amp --load /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/checkpoints/checkpoint_epoch10.pth
+cp ./checkpoints/checkpoint_epoch1.pth ./models/lk_1e_27i_2b_3v.pth
+python evaluatev1.py -s 1 -m ./models/lk_1e_27i_1b_3v.pth
+python predict.py -m ./checkpoints/checkpoint_epoch3.pth --input ./testset/imgs --output ./testset/masks

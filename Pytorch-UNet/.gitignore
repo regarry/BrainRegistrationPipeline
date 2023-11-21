@@ -2,9 +2,10 @@
 data/
 __pycache__/
 checkpoints/
-*.pth
 *.jpg
 out/
 venv/
 .idea/
 wandb/
+learning_curves/
+models/
