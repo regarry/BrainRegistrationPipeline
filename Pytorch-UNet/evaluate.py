@@ -11,7 +11,7 @@ from utils.dice_score import multiclass_dice_coeff, dice_coeff
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 torch.set_num_threads(4)
 @torch.inference_mode()
-def evaluate(net, dataloader, device, amp):
+def evaluate(net, dataloader, device, amp, alpha):
     net.eval()
     logging.debug('Starting evaluate.py')
     num_val_batches = len(dataloader)
@@ -33,13 +33,15 @@ def evaluate(net, dataloader, device, amp):
             if net.n_classes == 1:
                 assert mask_true.min() >= 0 and mask_true.max() <= 1, 'True mask indices should be in [0, 1]'
                 mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
+                loss = criterion(mask_pred, mask_true)
+                loss += alpha * dice_loss(F.sigmoid(mask_pred.squeeze(1)), mask_true.float(), multiclass=False)
                 # compute the Dice score
                 dice_score += dice_coeff(mask_pred, mask_true, reduce_batch_first=False)
             else:
                 assert mask_true.min() >= 0 and mask_true.max() < net.n_classes, 'True mask indices should be in [0, n_classes['
                 loss = criterion(mask_pred, mask_true)
                 logging.debug('computed loss with criterion')
-                loss += dice_loss(
+                loss += alpha * dice_loss(
                             F.softmax(mask_pred, dim=1).float(),
                             F.one_hot(mask_true, net.n_classes).permute(0, 3, 1, 2).float(),
                             multiclass=True

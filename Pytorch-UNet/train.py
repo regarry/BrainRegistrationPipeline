@@ -34,12 +34,13 @@ dir_mask = Path('./trainset_11-21/masks/')
 dir_checkpoint = Path('./checkpoints/')
 dir_curves = './learning_curves/'
 
-def plot_loss(train_loss, val_loss):
+def plot_loss(train_loss, val_loss, dice_score):
     epochs = np.array((range(1,len(train_loss)+1)))
     train_loss = np.array(train_loss)
     val_loss = np.array(val_loss)
     plt.plot(epochs,train_loss/train_loss[0],label='train loss')
     plt.plot(epochs,val_loss/val_loss[0],label='val loss')
+    plt.plot(epochs,dice_score,label='dice score')
     plt.title("Normalized Loss Plot vs Epoch")
     plt.xlabel("Epoch")
     plt.ylabel("Loss: Cross Entropy + Dice")
@@ -61,9 +62,10 @@ def train_model(
         weight_decay: float = 1e-8,
         momentum: float = 0.999,
         gradient_clipping: float = 1.0,
+        alpha: float = 0.5
 ):
     # 1. Create dataset
-    dataset = BasicDataset(dir_img, dir_mask, img_scale, mask_suffix='_mask')
+    dataset = BasicDataset(dir_img, dir_mask, img_scale, mask_suffix='_mask', is_train=True)
 
     # 2. Split into train / validation partitions
     n_val = math.ceil(len(dataset) * val_percent)
@@ -105,6 +107,7 @@ def train_model(
 
     train_loss_list = []
     val_loss_list = []
+    dice_score_list = []
 
     # 5. Begin training
     for epoch in range(1, epochs + 1):
@@ -126,10 +129,10 @@ def train_model(
                     masks_pred = model(images)
                     if model.n_classes == 1:
                         loss = criterion(masks_pred.squeeze(1), true_masks.float())
-                        loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
+                        loss += alpha * dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
                     else:
                         loss = criterion(masks_pred, true_masks)
-                        loss += dice_loss(
+                        loss += alpha * dice_loss(
                             F.softmax(masks_pred, dim=1).float(),
                             F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
                             multiclass=True
@@ -160,7 +163,7 @@ def train_model(
                         scheduler.step(val_score)
                         logging.info('Validation Dice score: {}'.format(val_score))    
                 """
-            val_dict = evaluate(model, val_loader, device, amp)
+            val_dict = evaluate(model, val_loader, device, amp, alpha)
             logging.debug('Evlation finished')
             val_score = val_dict['dice_score']
             val_loss = val_dict['val_loss']
@@ -170,10 +173,12 @@ def train_model(
                       
             train_loss_list.append(epoch_loss)
             val_loss_list.append(val_loss)
+            dice_score_list.append(val_score)
             logging.info(f'''
                              epoch:      {epoch}
                              train loss: {epoch_loss}
                              val loss:   {val_loss}
+                             dice score: {val_score}
                              ''')    
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -181,7 +186,7 @@ def train_model(
             state_dict['mask_values'] = dataset.mask_values
             torch.save(state_dict, str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
             logging.info(f'Checkpoint {epoch} saved!')
-    plot_loss(train_loss_list,val_loss_list)
+    plot_loss(train_loss_list,val_loss_list, dice_score_list)
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
@@ -237,6 +242,9 @@ if __name__ == '__main__':
             val_percent=args.val / 100,
             amp=args.amp
         )
+    except KeyboardInterrupt:
+        print('Hello user you have pressed ctrl-c button.')
+        #plot_loss(train_loss_list,val_loss_list, dice_score_list)
     except Exception as e:
         print("Exception occurred: ", e)
         traceback.print_exc()

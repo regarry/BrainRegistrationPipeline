@@ -9,3 +9,5 @@ venv/
 wandb/
 learning_curves/
 models/
+testset/masks/
+
