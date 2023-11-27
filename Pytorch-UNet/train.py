@@ -4,6 +4,7 @@ import os
 import random
 import sys
 import gc
+import traceback
 import math
 import torch
 import torch.nn as nn
@@ -25,9 +26,11 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
 gc.collect()
 torch.cuda.empty_cache()
 
-dir_rsc_storage = '/rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data'
-dir_img = Path(dir_rsc_storage+'/cfos_img_labelkit/')
-dir_mask = Path(dir_rsc_storage+'/cfos_mask_labelkit/')
+# dir_rsc_storage = '/rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data'
+# dir_img = Path(dir_rsc_storage+'/cfos_img_labelkit/')
+# dir_mask = Path(dir_rsc_storage+'/cfos_mask_labelkit/')
+dir_img = Path('./trainset_11-21/imgs/')
+dir_mask = Path('./trainset_11-21/masks/')
 dir_checkpoint = Path('./checkpoints/')
 dir_curves = './learning_curves/'
 
@@ -60,7 +63,7 @@ def train_model(
         gradient_clipping: float = 1.0,
 ):
     # 1. Create dataset
-    dataset = BasicDataset(dir_img, dir_mask,img_scale,mask_suffix='_mask')
+    dataset = BasicDataset(dir_img, dir_mask, img_scale, mask_suffix='_mask')
 
     # 2. Split into train / validation partitions
     n_val = math.ceil(len(dataset) * val_percent)
@@ -145,7 +148,7 @@ def train_model(
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
                 # Evaluation round
-                
+                """
                 division_step = (n_train // (5 * batch_size))
                 if division_step > 0:
                     if global_step % division_step == 0:
@@ -156,7 +159,15 @@ def train_model(
                         logging.debug(f'val_loss: {val_loss}')
                         scheduler.step(val_score)
                         logging.info('Validation Dice score: {}'.format(val_score))    
-                        
+                """
+            val_dict = evaluate(model, val_loader, device, amp)
+            logging.debug('Evlation finished')
+            val_score = val_dict['dice_score']
+            val_loss = val_dict['val_loss']
+            logging.debug(f'val_loss: {val_loss}')
+            scheduler.step(val_score)
+            logging.info('Validation Dice score: {}'.format(val_score))  
+                      
             train_loss_list.append(epoch_loss)
             val_loss_list.append(val_loss)
             logging.info(f'''
@@ -226,9 +237,9 @@ if __name__ == '__main__':
             val_percent=args.val / 100,
             amp=args.amp
         )
-    except:
-        pass
-
+    except Exception as e:
+        print("Exception occurred: ", e)
+        traceback.print_exc()
     """
     except torch.cuda.OutOfMemoryError:
         logging.error('Detected OutOfMemoryError! '
