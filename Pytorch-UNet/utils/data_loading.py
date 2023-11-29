@@ -78,7 +78,7 @@ class BasicDataset(Dataset):
         return img_rotated, mask_rotated
     
     @staticmethod
-    def random_gradient_augment(img, p_gradient=0.5, min_gradient = 0.5):
+    def random_gradient_augment(img, p_gradient=0.5, min_gradient = 0.2):
         """ randomly augment a grayscale image numpy array with a random gradient. 
         Gradients can be linear horizontal, linear vertical, or radial. """
         

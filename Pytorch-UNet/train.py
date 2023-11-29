@@ -29,8 +29,8 @@ torch.cuda.empty_cache()
 # dir_rsc_storage = '/rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data'
 # dir_img = Path(dir_rsc_storage+'/cfos_img_labelkit/')
 # dir_mask = Path(dir_rsc_storage+'/cfos_mask_labelkit/')
-dir_img = Path('./trainset_11-21/imgs/')
-dir_mask = Path('./trainset_11-21/masks/')
+dir_img = Path('./trainset_11-29/imgs/')
+dir_mask = Path('./trainset_11-29/masks/')
 dir_checkpoint = Path('./checkpoints/')
 dir_curves = './learning_curves/'
 
@@ -38,6 +38,7 @@ def plot_loss(train_loss, val_loss, dice_score):
     epochs = np.array((range(1,len(train_loss)+1)))
     train_loss = np.array(train_loss)
     val_loss = np.array(val_loss)
+    dice_score = np.array(dice_score)
     plt.plot(epochs,train_loss/train_loss[0],label='train loss')
     plt.plot(epochs,val_loss/val_loss[0],label='val loss')
     plt.plot(epochs,dice_score,label='dice score')
@@ -62,7 +63,7 @@ def train_model(
         weight_decay: float = 1e-8,
         momentum: float = 0.999,
         gradient_clipping: float = 1.0,
-        alpha: float = 0.5
+        alpha: float = 1
 ):
     # 1. Create dataset
     dataset = BasicDataset(dir_img, dir_mask, img_scale, mask_suffix='_mask', is_train=True)
@@ -70,8 +71,8 @@ def train_model(
     # 2. Split into train / validation partitions
     n_val = math.ceil(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
-    train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
-
+    train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(16))
+    val_set.dataset.is_train = False
     # 3. Create data loaders
     loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
@@ -155,25 +156,25 @@ def train_model(
                 division_step = (n_train // (5 * batch_size))
                 if division_step > 0:
                     if global_step % division_step == 0:
-                        val_dict = evaluate(model, val_loader, device, amp)
-                        logging.debug('Evlation finished')
+                        val_dict = evaluate(model, val_loader, device, amp, alpha)
+                        #logging.debug('Evaluation finished')
                         val_score = val_dict['dice_score']
                         val_loss = val_dict['val_loss']
-                        logging.debug(f'val_loss: {val_loss}')
+                        #logging.debug(f'val_loss: {val_loss}')
                         scheduler.step(val_score)
                         logging.info('Validation Dice score: {}'.format(val_score))    
                 """
             val_dict = evaluate(model, val_loader, device, amp, alpha)
-            logging.debug('Evlation finished')
+            #logging.debug('Evaluation finished')
             val_score = val_dict['dice_score']
             val_loss = val_dict['val_loss']
             logging.debug(f'val_loss: {val_loss}')
             scheduler.step(val_score)
-            logging.info('Validation Dice score: {}'.format(val_score))  
+            #logging.info('Validation Dice score: {}'.format(val_score))  
                       
             train_loss_list.append(epoch_loss)
             val_loss_list.append(val_loss)
-            dice_score_list.append(val_score)
+            dice_score_list.append(val_score.item())
             logging.info(f'''
                              epoch:      {epoch}
                              train loss: {epoch_loss}
