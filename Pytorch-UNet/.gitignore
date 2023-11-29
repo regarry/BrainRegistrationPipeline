@@ -8,6 +8,5 @@ venv/
 .idea/
 wandb/
 learning_curves/
-models/
 testset/masks/
-
+models/

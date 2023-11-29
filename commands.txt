@@ -9,4 +9,4 @@ cd $scr/Pytorch-UNet
 python train.py -s 1 -e 10 --amp --load /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/checkpoints/checkpoint_epoch10.pth
 cp ./checkpoints/checkpoint_epoch1.pth ./models/lk_1e_27i_2b_3v.pth
 python evaluatev1.py -s 1 -m ./models/lk_1e_27i_1b_3v.pth
-python predict.py -m ./checkpoints/checkpoint_epoch24.pth --input ./testset/imgs --output ./testset/masks
+python predict.py -m ./checkpoints/checkpoint_epoch24.pth --input ./testset_11-29/imgs --output ./testset_11-29/masks
