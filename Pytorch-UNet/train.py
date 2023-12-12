@@ -7,6 +7,7 @@ import gc
 import traceback
 import math
 import torch
+#print(f'gpu count loc -1: {torch.cuda.device_count()}') 
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
@@ -22,6 +23,9 @@ from unet import UNet
 from utils.data_loading import BasicDataset
 from utils.dice_score import dice_loss
 from matplotlib import pyplot as plt
+
+#print(f'gpu count loc 0: {torch.cuda.device_count()}') 
+
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
 gc.collect()
 torch.cuda.empty_cache()
@@ -29,8 +33,8 @@ torch.cuda.empty_cache()
 # dir_rsc_storage = '/rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data'
 # dir_img = Path(dir_rsc_storage+'/cfos_img_labelkit/')
 # dir_mask = Path(dir_rsc_storage+'/cfos_mask_labelkit/')
-dir_img = Path('./trainset_11-29/imgs/')
-dir_mask = Path('./trainset_11-29/masks/')
+dir_img = Path('./trainset_12_11/imgs/')
+dir_mask = Path('./trainset_12_11/masks/')
 dir_checkpoint = Path('./checkpoints/')
 dir_curves = './learning_curves/'
 
@@ -210,14 +214,17 @@ def get_args():
 
 
 if __name__ == '__main__':
+    #print(f'gpu count loc 1: {torch.cuda.device_count()}')    
     args = get_args()
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.cuda)
-    torch.set_num_threads(args.cpu)
+    #os.environ['CUDA_VISIBLE_DEVICES'] = str(args.cuda)
+    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+    #torch.set_num_threads(args.cpu)
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
     model = UNet(n_channels=args.nchannels, n_classes=args.classes, bilinear=args.bilinear)
+    
     model = model.to(memory_format=torch.channels_last)
 
     logging.info(f'Network:\n'
@@ -230,7 +237,12 @@ if __name__ == '__main__':
         del state_dict['mask_values']
         model.load_state_dict(state_dict)
         logging.info(f'Model loaded from {args.load}')
-
+    #print(f'gpu count loc 2: {torch.cuda.device_count()}')    
+    if torch.cuda.device_count() > 1:
+        i = list(range(0, torch.cuda.device_count()))
+        print(i)
+        #torch.cuda.set_device(i)
+        #model = nn.parallel.DistributedDataParallel(model,device_ids=[1]) # list of ints with the leading one requring the most memory for combining
     model.to(device=device)
     try:
         train_model(

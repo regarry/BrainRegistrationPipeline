@@ -107,7 +107,7 @@ class BasicDataset(Dataset):
             gradient = np.tile(gradient, (img.shape[1], 1)).T
         elif gradient_type == 5:  # radial -
             y_indices, x_indices = np.indices(img.shape)
-            center_x, center_y = img.shape[1] / 2, img.shape[0] / 2
+            center_x, center_y = random.randint(0, img.shape[1]), random.randint(0, img.shape[0])
             gradient = np.hypot(x_indices - center_x, y_indices - center_y)
             gradient = (gradient.max() - gradient)/gradient.max()
             gradient = np.maximum(gradient, min_gradient)

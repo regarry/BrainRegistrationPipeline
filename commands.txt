@@ -1,4 +1,4 @@
-python train.py -s 1 -e 10 -c 2 --amp -b 16 
+python train.py -s 1 -e 50 -c 2 --amp -b 16 
 python predict.py -m /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/checkpoints/checkpoint_epoch3.pth --input /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data/imgs/cfos_001.png --output ./out_001.png
 python predict.py -m ./checkpoints/checkpoint_epoch1.pth --input /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data/cfos_img_remaining/cfos_049.png --output ./out/out_1b_049.png
 python predict.py -m ./checkpoints/checkpoint_epoch1.pth --input /rsstu/users/t/tghashg/MADMbrains/Ryan/Pytorch-UNet/data/cfos_img_remaining/cfos_059.png --output ./out/out_1b_059.png
