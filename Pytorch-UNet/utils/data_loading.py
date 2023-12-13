@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import torch
+import random
 from PIL import Image
 from functools import lru_cache
 from functools import partial
@@ -158,7 +159,7 @@ class BasicDataset(Dataset):
         else: # this is if the data is an image not mask
             if is_train:
                 # only augment images for training dataset
-                arr = BasicDataset.random_gradient_augment(arr)
+                arr = BasicDataset.random_gradient_augment(arr, p_gradient=0.5, min_gradient = 0.2)
                 
             if arr.ndim == 2:
                 img = arr[np.newaxis, ...]
