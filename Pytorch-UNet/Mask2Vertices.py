@@ -5,8 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 minimum_coordinates = 100
-dir_path = './brain_1/'
-sub_dir_path = 'masks/'
+dir_path = './brain_1/yz_45_masks/'
 image_format = '.png'
 
 if not os.path.exists(f'{dir_path}/markers/'):
@@ -16,10 +15,11 @@ if not os.path.exists(f'{dir_path}/contours/'):
     
 # Get a list of all image files in the directory with the specified format
 image_files = []
-for file in os.listdir(dir_path + sub_dir_path):
+dfs = []
+for file in os.listdir(dir_path):
     if file.endswith(image_format):
         image_files.append(file)
-image_file_paths = [os.path.join(dir_path + sub_dir_path, file) for file in image_files]
+image_file_paths = [os.path.join(dir_path, file) for file in image_files]
 for file_path, file_name in zip(image_file_paths, image_files):
     mask = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -46,3 +46,7 @@ for file_path, file_name in zip(image_file_paths, image_files):
             total_coordinates = np.append(total_coordinates, coordinates, axis=0) 
     total_coordinates = total_coordinates[2:,:] # remove the first two rows of nan
     print(total_coordinates.shape)
+    dfs.append(total_coordinates)
+
+arr = np.array(dfs,dtype=object)
+np.save(dir_path + 'arr.npy', arr)
