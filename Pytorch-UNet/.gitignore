@@ -10,6 +10,5 @@ wandb/
 learning_curves/
 testset/masks/
 models/
-brain_1/
-cube/
-cube_1/
+brain*/
+cube*
