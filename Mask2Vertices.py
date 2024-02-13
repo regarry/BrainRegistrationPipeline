@@ -61,14 +61,17 @@ def mask2vertices(mask_path, image_format:  str = ".png", minimum_coordinates: i
         json.dump(dfs, f)
     
 def masks2vertices(mask_folder, image_format: str = ".png", minimum_coordinates: int = 100):
-    volume_vertices = []
-    mat_files = []
+    
     for file in os.listdir(mask_folder):
         if file.endswith('.mat'):
             mask_file = os.path.join(mask_folder, file)
             mat_dict = loadmat(mask_file)
             first_key = list(mat_dict.keys())[3]
             mask_array = mat_dict[first_key]
+            volume_vertices = []
+            k = 1
+            volume_vertices_dict = {"0": mask_array.shape}
+            print(volume_vertices_dict)
             #print(mask_array.shape)
             #print(mask_array.dtype)
             #print(type(mask_array))
@@ -86,32 +89,42 @@ def masks2vertices(mask_folder, image_format: str = ".png", minimum_coordinates:
                 mask = mask_array[:,:,i]
                 file_name = f'{i}.png'
                 
+                
                 contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 #contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
-
+                #print({"1":contours})
                 # display the contours and coordinates in png files
+                slice_vertices_list = []
                 if contours:
-                    contour = np.zeros(mask.shape, dtype='uint8')
-                    marker = np.zeros(mask.shape, dtype='uint8')
-                    slice_vertices = np.full((2, 2), np.nan)
-                    for i in range(len(contours)):
-                        coordinates = np.array(contours[i]).reshape((-1,2))
-                        if coordinates.shape[0] > minimum_coordinates:
-                            cv2.drawContours(contour, contours=contours, contourIdx=i, color=(255, 255, 255), thickness=1)
-                            slice_vertices = np.append(slice_vertices, coordinates, axis=0) 
-                            for coordinate in coordinates:
-                                cv2.drawMarker(marker,coordinate, color=(255, 255, 255), markerType=cv2.MARKER_CROSS, markerSize=1, thickness=1)
-                        
-                    cv2.imwrite(f'{mask_path}/markers/{file_name}_markers{image_format}', marker)
-                    cv2.imwrite(f'{mask_path}/contours/{file_name}_contours{image_format}', contour)
-                    slice_vertices = slice_vertices[2:,:] # remove the first two rows of nan
-                    volume_vertices.append(slice_vertices.tolist())
+                    contour_img = np.zeros(mask.shape, dtype='uint8')
+                    marker_img = np.zeros(mask.shape, dtype='uint8')
+                    #slice_vertices = np.full((2, 2), np.nan)
+
                     
-            arr = np.array(volume_vertices,dtype=object)
-            np.save(f'{mask_path}/vertices.npy', arr)
-            savemat(f'{mask_path}/vertices.mat', {'vertices': arr})    
+                    slice_vertices = np.array(contours[0]).reshape((-1,2))
+                    #print(f"{slice_vertices.shape}")
+                    # removed for i in range(len(contours)): # limited to one contour per slice for now
+                    if slice_vertices.shape[0] > minimum_coordinates:
+                        cv2.drawContours(contour_img, contours=contours, contourIdx=0, color=(255, 255, 255), thickness=1) # only did index 0
+                        #slice_vertices = np.append(slice_vertices, coordinates, axis=0) 
+                        for pair in slice_vertices:
+                            slice_vertices_list.append([pair.tolist()])
+                            
+                            cv2.drawMarker(marker_img, pair, color=(255, 255, 255), markerType=cv2.MARKER_CROSS, markerSize=1, thickness=1)
+                        #print({f"{i}": slice_vertices_list})
+                        volume_vertices_dict.update({f"{i}": slice_vertices_list})
+                        # need to think more about k because I need to be able to backtrack to the original slice
+                        cv2.imwrite(f'{mask_path}/markers/{file_name}_markers{image_format}', marker_img)
+                        cv2.imwrite(f'{mask_path}/contours/{file_name}_contours{image_format}', contour_img)
+                    #slice_vertices = slice_vertices[2:,:] # remove the first two rows of nan
+                    #volume_vertices.append(slice_vertices.tolist())
+            
+            # may need to change the size of the third dimension to match the number of slices with valid contours        
+            #arr = np.array(volume_vertices,dtype=object)
+            #np.save(f'{mask_path}/vertices.npy', arr)
+            #savemat(f'{mask_path}/vertices.mat', {'vertices': arr})    
             with open(f'{mask_path}/vertices.json', 'w') as f:
-                json.dump(volume_vertices, f)
+                json.dump(volume_vertices_dict, f)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert mask to vertices')
