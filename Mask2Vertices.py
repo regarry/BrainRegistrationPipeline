@@ -69,9 +69,9 @@ def masks2vertices(mask_folder, image_format: str = ".png", minimum_coordinates:
             mat_dict = loadmat(mask_file)
             first_key = list(mat_dict.keys())[3]
             mask_array = mat_dict[first_key]
-            print(mask_array.shape)
-            print(mask_array.dtype)
-            print(type(mask_array))
+            #print(mask_array.shape)
+            #print(mask_array.dtype)
+            #print(type(mask_array))
             if not os.path.exists(f'./{mask_folder}'):  
                 os.makedirs(f'./{mask_folder}')
             if os.path.exists(f'./{mask_folder}/{file[:-4]}'):  
@@ -102,25 +102,16 @@ def masks2vertices(mask_folder, image_format: str = ".png", minimum_coordinates:
                             for coordinate in coordinates:
                                 cv2.drawMarker(marker,coordinate, color=(255, 255, 255), markerType=cv2.MARKER_CROSS, markerSize=1, thickness=1)
                         
-                    cv2.imwrite(f'{mask_path}/markers/{file_name}_markers.{image_format}', marker)
-                    cv2.imwrite(f'{mask_path}/contours/{file_name}_contours.{image_format}', contour)
+                    cv2.imwrite(f'{mask_path}/markers/{file_name}_markers{image_format}', marker)
+                    cv2.imwrite(f'{mask_path}/contours/{file_name}_contours{image_format}', contour)
                     slice_vertices = slice_vertices[2:,:] # remove the first two rows of nan
-                    volume_vertices.append(slice_vertices)
-                # make the combined coordinate array
-                """
-                total_coordinates = np.full((2, 2), np.nan)
-                for i in range(len(contours)):
-                    coordinates = np.array(contours[i]).reshape((-1,2))
-                    if coordinates.shape[0] > minimum_coordinates:
-                        #print(coordinates.shape)
-                        total_coordinates = np.append(total_coordinates, coordinates, axis=0) 
-                total_coordinates = total_coordinates[2:,:] # remove the first two rows of nan
-                #print(total_coordinates.shape)
-                dfs.append(total_coordinates)
-                """
+                    volume_vertices.append(slice_vertices.tolist())
+                    
             arr = np.array(volume_vertices,dtype=object)
             np.save(f'{mask_path}/vertices.npy', arr)
             savemat(f'{mask_path}/vertices.mat', {'vertices': arr})    
+            with open(f'{mask_path}/vertices.json', 'w') as f:
+                json.dump(volume_vertices, f)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert mask to vertices')
