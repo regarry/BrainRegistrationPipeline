@@ -3,6 +3,7 @@ import os
 import numpy as np
 import shutil
 from scipy.io import savemat, loadmat  
+import mat73
 import argparse
 import json
 
@@ -60,21 +61,27 @@ def mask2vertices(mask_path, image_format:  str = ".png", minimum_coordinates: i
     with open(f'{mask_path}/vertices.json', 'w') as f:
         json.dump(dfs, f)
     
-def masks2vertices(mask_folder, image_format: str = ".png", minimum_coordinates: int = 100):
+def masks2vertices(mask_folder, image_format: str = ".png", minimum_coordinates: int = 3):
     
     for file in os.listdir(mask_folder):
         if file.endswith('.mat'):
             mask_file = os.path.join(mask_folder, file)
-            mat_dict = loadmat(mask_file)
-            first_key = list(mat_dict.keys())[3]
-            mask_array = mat_dict[first_key]
+            try:
+                mat_dict = mat73.loadmat(mask_file)
+                #print(mat_dict.keys())
+                first_key = list(mat_dict.keys())[0]
+            except:
+                mat_dict = loadmat(mask_file)
+                first_key = list(mat_dict.keys())[3]
+            
+            mask_array = mat_dict[first_key].astype('uint8') 
             volume_vertices = []
-            k = 1
-            volume_vertices_dict = {"0": mask_array.shape}
-            print(volume_vertices_dict)
-            #print(mask_array.shape)
-            #print(mask_array.dtype)
-            #print(type(mask_array))
+            number_of_valid_slices = 0
+            volume_vertices_dict = {"0": mask_array.shape[:1]}
+            #print(volume_vertices_dict)
+            print(mask_array.shape)
+            print(mask_array.dtype)
+            print(type(mask_array))
             if not os.path.exists(f'./{mask_folder}'):  
                 os.makedirs(f'./{mask_folder}')
             if os.path.exists(f'./{mask_folder}/{file[:-4]}'):  
@@ -86,9 +93,9 @@ def masks2vertices(mask_folder, image_format: str = ".png", minimum_coordinates:
             if not os.path.exists(f'{mask_path}/contours/'):
                 os.makedirs(f'{mask_path}/contours/')
             for i in range(mask_array.shape[2]):
-                mask = mask_array[:,:,i]
-                file_name = f'{i}.png'
-                
+                mask = mask_array[:,:,i]   
+                #print(mask[256,256])
+                #print(mask.dtype)
                 
                 contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 #contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
@@ -113,16 +120,19 @@ def masks2vertices(mask_folder, image_format: str = ".png", minimum_coordinates:
                             cv2.drawMarker(marker_img, pair, color=(255, 255, 255), markerType=cv2.MARKER_CROSS, markerSize=1, thickness=1)
                         #print({f"{i}": slice_vertices_list})
                         volume_vertices_dict.update({f"{i}": slice_vertices_list})
+                        number_of_valid_slices += 1
                         # need to think more about k because I need to be able to backtrack to the original slice
-                        cv2.imwrite(f'{mask_path}/markers/{file_name}_markers{image_format}', marker_img)
-                        cv2.imwrite(f'{mask_path}/contours/{file_name}_contours{image_format}', contour_img)
+                        cv2.imwrite(f'{mask_path}/markers/{i}_markers{image_format}', marker_img)
+                        cv2.imwrite(f'{mask_path}/contours/{i}_contours{image_format}', contour_img)
                     #slice_vertices = slice_vertices[2:,:] # remove the first two rows of nan
                     #volume_vertices.append(slice_vertices.tolist())
             
             # may need to change the size of the third dimension to match the number of slices with valid contours        
             #arr = np.array(volume_vertices,dtype=object)
             #np.save(f'{mask_path}/vertices.npy', arr)
-            #savemat(f'{mask_path}/vertices.mat', {'vertices': arr})    
+            #savemat(f'{mask_path}/vertices.mat', {'vertices': arr})
+            volume_size = [mask_array.shape[0], mask_array.shape[1], number_of_valid_slices]
+            volume_vertices_dict.update({"0": volume_size})  
             with open(f'{mask_path}/vertices.json', 'w') as f:
                 json.dump(volume_vertices_dict, f)
 
@@ -130,6 +140,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert mask to vertices')
     parser.add_argument('--path', '-p', type=str, help='Path to the masks')
     parser.add_argument('--img_fmt', type=str, default='.png', help='Image format')
-    parser.add_argument('--min_coord', type=int, default=4, help='Minimum number of coordinates')
+    parser.add_argument('--min_coord', type=int, default=3, help='Minimum number of coordinates')
     args = parser.parse_args()
     masks2vertices(args.path, args.img_fmt, args.min_coord)
