@@ -2,6 +2,7 @@
 data/
 __pycache__/
 checkpoints/
+logs/
 *.jpg
 out/
 venv/
@@ -9,6 +10,5 @@ venv/
 wandb/
 learning_curves/
 testset/masks/
-models/
 brain*/
 cube*

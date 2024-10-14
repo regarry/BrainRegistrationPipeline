@@ -8,8 +8,8 @@ from utils.dice_score import dice_loss
 
 from utils.dice_score import multiclass_dice_coeff, dice_coeff
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-torch.set_num_threads(4)
+#os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+#torch.set_num_threads(4)
 @torch.inference_mode()
 def evaluate(net, dataloader, device, amp, alpha):
     net.eval()
